@@ -1,0 +1,16 @@
+{
+  "name": "Well Plate Editor",
+  "short_name": "Plate Editor",
+  "description": "Lab well plate annotation tool",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}
