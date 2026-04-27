@@ -2,7 +2,7 @@
 
 基于浏览器的孔板实验记录工具，无需安装，打开链接即可使用。
 
-**在线访问 → [your-username.github.io/Experiment-record-for-Plate](https://your-username.github.io/Experiment-record-for-Plate)**
+**在线访问 → [Experiment-record-for-Plate](https://croisento.github.io/Experiment-record-for-Plate/)**
 
 ---
 
