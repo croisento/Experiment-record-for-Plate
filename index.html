@@ -65,7 +65,24 @@ header p{font-size:11px;color:var(--text3)}
 .fsz-val{min-width:28px;text-align:center;font-size:12px;font-weight:500;color:var(--text)}
 /* plate zone */
 .pzone{position:relative;display:flex;justify-content:center;align-items:flex-start;padding:16px;background:var(--bg2);border-radius:var(--rl);border:.5px solid var(--border);overflow:auto;min-height:200px;user-select:none}
-.pzone-inner{position:relative;display:inline-block}
+.pzone-inner{
+  position:relative;display:inline-block;
+  /* annotation margins: top=title area, sides/bottom=notes area */
+  padding:76px 48px 48px 48px;
+}
+/* title area hint text */
+.pzone-inner::before{
+  content:"← 标注区域：拖入文本框添加标题、日期、备注 →";
+  position:absolute;top:22px;left:50%;transform:translateX(-50%);
+  font-size:11px;color:var(--text3);opacity:.45;white-space:nowrap;
+  pointer-events:none;font-family:'Courier New',monospace;
+}
+/* separator line between annotation zone and plate */
+.pzone-inner::after{
+  content:"";position:absolute;
+  top:68px;left:24px;right:24px;height:1px;
+  background:var(--border);pointer-events:none;
+}
 #grid-content{position:relative;z-index:1}
 .tb-layer{position:absolute;inset:0;pointer-events:none;z-index:10}
 /* wells */
@@ -235,13 +252,20 @@ window.selectAll=()=>{
   else{for(let i=1;i<=cfg.slots;i++)keys.push(K('A',i));}
   S.sel=new Set(keys);renderGrid();renderSelBar();
 };
+// annotation margin sizes — must match .pzone-inner CSS padding
+const MARG={top:76,side:48,bot:48};
+
 window.addTextBox=()=>{
   const plate=ap();if(!plate.tbs)plate.tbs=[];
-  const pz=document.getElementById('pzone');
-  const cx=pz?pz.scrollLeft+pz.clientWidth/2-40:80,cy=pz?pz.scrollTop+60:60;
+  const gc=document.getElementById('grid-content');
+  const gridW=gc?gc.offsetWidth:300;
   const id=S.tbNid++;
-  plate.tbs.push({id,x:cx,y:cy,text:'文本',size:14,color:'#2C2C2A'});
+  // default into the top annotation zone, horizontally centered
+  const x=Math.max(4,Math.round((MARG.side+gridW)/2)-60);
+  const y=16;
+  plate.tbs.push({id,x,y,text:'实验标题 / 日期',size:14,color:'#2C2C2A'});
   S.tbSel=id;S.tbEdit=null;renderTBLayer();
+  setTimeout(()=>tbStartEdit(id),30);
 };
 window.tbDown=(e,id)=>{
   e.stopPropagation();e.preventDefault();S.tbSel=id;S.tbEdit=null;
@@ -280,22 +304,32 @@ document.addEventListener('mousedown',e=>{
 window.exportPNG=()=>{
   const plate=ap(),cfg=CFG[plate.type],nm=plate.name;
   const used=new Map();Object.values(plate.wells).forEach(w=>{if(w.col)used.set(w.col.id,w.col);});
-  const PAD=32,TH=30,bh=used.size?50:0,LFS=S.labelFontSize;
+  // Canvas outer padding + annotation margins (mirror CSS .pzone-inner padding)
+  const CP=16; // canvas outer padding
+  const MT=MARG.top,MS=MARG.side,MB=MARG.bot;
+  const LFS=S.labelFontSize;
   let canvas;
   if(cfg.t==='w'){
     const rows=cfg.rows.split(''),cols=cfg.cols;
     const sz=Math.max(46,Math.min(62,Math.floor(560/cols)));
     const gap=Math.max(5,Math.floor(sz*.12)),LW=32,LH=28;
-    const W=PAD*2+LW+cols*(sz+gap)-gap,H=PAD+TH+LH+rows.length*(sz+gap)-gap+bh+PAD;
-    const GX=PAD+LW,GY=PAD+TH+LH;
+    // total canvas size includes annotation margins
+    const W=CP*2+MS*2+LW+cols*(sz+gap)-gap;
+    const H=CP*2+MT+MB+LH+rows.length*(sz+gap)-gap+(used.size?50:0);
+    // grid starts at (CP+MS+LW, CP+MT+LH) in canvas
+    const GX=CP+MS+LW,GY=CP+MT+LH;
     canvas=document.createElement('canvas');canvas.width=W*2;canvas.height=H*2;
     const ctx=canvas.getContext('2d');ctx.scale(2,2);
     ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);
-    ctx.fillStyle='#222';ctx.font='bold 13px "Courier New"';ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText(nm,PAD,PAD+TH/2);
-    for(let c=0;c<cols;c++){ctx.fillStyle='#888';ctx.font='11px "Courier New"';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(String(c+1),GX+c*(sz+gap)+sz/2,PAD+TH+LH/2);}
+    // subtle separator line (mirrors ::after pseudo)
+    ctx.strokeStyle='#e0deda';ctx.lineWidth=.8;
+    ctx.beginPath();ctx.moveTo(CP+16,CP+MT-8);ctx.lineTo(W-CP-16,CP+MT-8);ctx.stroke();
+    // col labels
+    for(let c=0;c<cols;c++){ctx.fillStyle='#888';ctx.font='11px "Courier New"';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(String(c+1),GX+c*(sz+gap)+sz/2,CP+MT+LH/2);}
+    // row labels + wells
     rows.forEach((r,ri)=>{
       const y=GY+ri*(sz+gap)+sz/2;
-      ctx.fillStyle='#888';ctx.font='11px "Courier New"';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(r,PAD+LW/2,y);
+      ctx.fillStyle='#888';ctx.font='11px "Courier New"';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(r,CP+MS+LW/2,y);
       for(let c=0;c<cols;c++){
         const x=GX+c*(sz+gap)+sz/2,w=plate.wells[K(r,c+1)]||{};
         ctx.beginPath();ctx.arc(x,y,sz/2-1.5,0,Math.PI*2);
@@ -309,16 +343,24 @@ window.exportPNG=()=>{
         }
       }
     });
-    if(used.size){let lx=PAD;const ly=H-bh+18;ctx.font='11px "Courier New"';ctx.textBaseline='middle';used.forEach(col=>{ctx.beginPath();ctx.arc(lx+6,ly,6,0,Math.PI*2);ctx.fillStyle=col.hex;ctx.fill();ctx.fillStyle='#333';ctx.textAlign='left';ctx.fillText(col.lbl,lx+15,ly);lx+=ctx.measureText(col.lbl).width+30;});}
-    (plate.tbs||[]).forEach(tb=>{const lines=(tb.text||'').split('\n');ctx.fillStyle=tb.color||'#222';ctx.font=tb.size+'px "Courier New"';ctx.textAlign='left';ctx.textBaseline='top';lines.forEach((ln,i)=>ctx.fillText(ln,tb.x,tb.y+i*(tb.size*1.4)));});
+    // legend
+    if(used.size){let lx=CP+MS;const ly=H-MB+18;ctx.font='11px "Courier New"';ctx.textBaseline='middle';used.forEach(col=>{ctx.beginPath();ctx.arc(lx+6,ly,6,0,Math.PI*2);ctx.fillStyle=col.hex;ctx.fill();ctx.fillStyle='#333';ctx.textAlign='left';ctx.fillText(col.lbl,lx+15,ly);lx+=ctx.measureText(col.lbl).width+30;});}
+    // text boxes: tb.x,tb.y are relative to pzone-inner (0,0), so canvas = CP + tb.x/y
+    (plate.tbs||[]).forEach(tb=>{
+      const lines=(tb.text||'').split('\n');
+      ctx.fillStyle=tb.color||'#222';ctx.font=tb.size+'px "Courier New"';ctx.textAlign='left';ctx.textBaseline='top';
+      lines.forEach((ln,i)=>ctx.fillText(ln,CP+tb.x,CP+tb.y+i*(tb.size*1.4)));
+    });
   }else{
     const slots=cfg.slots,SW=46,SH=66,STH=24,gap=5;
-    const W=PAD*2+slots*(SW+gap)-gap,H=PAD+TH+STH+SH+36+bh+PAD;
-    const GX=PAD,GY=PAD+TH;
+    const W=CP*2+MS*2+slots*(SW+gap)-gap;
+    const H=CP*2+MT+MB+STH+SH+36+(used.size?50:0);
+    const GX=CP+MS,GY=CP+MT;
     canvas=document.createElement('canvas');canvas.width=W*2;canvas.height=H*2;
     const ctx=canvas.getContext('2d');ctx.scale(2,2);
     ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);
-    ctx.fillStyle='#222';ctx.font='bold 13px "Courier New"';ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText(nm,PAD,PAD+TH/2);
+    ctx.strokeStyle='#e0deda';ctx.lineWidth=.8;
+    ctx.beginPath();ctx.moveTo(CP+16,CP+MT-8);ctx.lineTo(W-CP-16,CP+MT-8);ctx.stroke();
     for(let i=0;i<slots;i++){
       const x=GX+i*(SW+gap),w=plate.wells[K('A',i+1)]||{};
       const bg=w.col?w.col.hex:'#fff',st=w.col?w.col.hex:'#ddd';
@@ -329,8 +371,12 @@ window.exportPNG=()=>{
       if(w.lbl){ctx.fillStyle=w.col?TC(w.col.hex):'#888';ctx.font=LFS+'px "Courier New"';ctx.textBaseline='middle';ctx.fillText(w.lbl.substring(0,7),x+SW/2,GY+STH+SH/2);}
     }
     ctx.strokeStyle='#ccc';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(GX,GY);ctx.lineTo(GX+slots*(SW+gap)-gap,GY);ctx.stroke();
-    if(used.size){let lx=PAD;const ly=H-bh+18;ctx.font='11px "Courier New"';ctx.textBaseline='middle';used.forEach(col=>{ctx.beginPath();ctx.arc(lx+6,ly,6,0,Math.PI*2);ctx.fillStyle=col.hex;ctx.fill();ctx.fillStyle='#333';ctx.textAlign='left';ctx.fillText(col.lbl,lx+15,ly);lx+=ctx.measureText(col.lbl).width+30;});}
-    (plate.tbs||[]).forEach(tb=>{const lines=(tb.text||'').split('\n');ctx.fillStyle=tb.color||'#222';ctx.font=tb.size+'px "Courier New"';ctx.textAlign='left';ctx.textBaseline='top';lines.forEach((ln,i)=>ctx.fillText(ln,tb.x,tb.y+i*(tb.size*1.4)));});
+    if(used.size){let lx=CP+MS;const ly=H-MB+18;ctx.font='11px "Courier New"';ctx.textBaseline='middle';used.forEach(col=>{ctx.beginPath();ctx.arc(lx+6,ly,6,0,Math.PI*2);ctx.fillStyle=col.hex;ctx.fill();ctx.fillStyle='#333';ctx.textAlign='left';ctx.fillText(col.lbl,lx+15,ly);lx+=ctx.measureText(col.lbl).width+30;});}
+    (plate.tbs||[]).forEach(tb=>{
+      const lines=(tb.text||'').split('\n');
+      ctx.fillStyle=tb.color||'#222';ctx.font=tb.size+'px "Courier New"';ctx.textAlign='left';ctx.textBaseline='top';
+      lines.forEach((ln,i)=>ctx.fillText(ln,CP+tb.x,CP+tb.y+i*(tb.size*1.4)));
+    });
   }
   const a=document.createElement('a');a.download=nm.replace(/\s+/g,'_')+'.png';a.href=canvas.toDataURL('image/png');a.click();
 };
