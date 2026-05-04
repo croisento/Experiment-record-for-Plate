@@ -94,15 +94,28 @@ header p{font-size:11px;color:var(--text3)}
 .well.sel{outline:2.5px dashed var(--text);outline-offset:1px;z-index:4}
 .wlbl{font-weight:500;text-align:center;line-height:1.2;pointer-events:none;max-width:92%;overflow:hidden;word-break:break-all}
 /* text boxes */
-.tb{position:absolute;pointer-events:all;min-width:60px;min-height:30px;border:1.5px solid transparent;border-radius:5px;padding:4px 6px;cursor:default}
+.tb{position:absolute;pointer-events:all;min-width:60px;min-height:24px;border:1.5px solid transparent;border-radius:5px;padding:4px 6px;cursor:default}
 .tb:hover{border-color:var(--border)}
 .tb.tb-sel{border-color:var(--border2);box-shadow:0 0 0 3px rgba(0,0,0,.05)}
-.tb-bar{display:none;align-items:center;gap:4px;margin-bottom:4px;flex-wrap:nowrap}
-.tb-sel .tb-bar{display:flex}
+/* toolbar floats ABOVE the box — never shifts text position */
+.tb-bar{
+  position:absolute;bottom:calc(100% + 5px);left:0;
+  display:flex;visibility:hidden;
+  align-items:center;gap:4px;flex-wrap:nowrap;
+  background:var(--bg);border:.5px solid var(--border2);
+  border-radius:var(--r);padding:4px 7px;
+  box-shadow:0 2px 10px rgba(0,0,0,.12);
+  z-index:30;white-space:nowrap;
+}
+.tb-sel .tb-bar{visibility:visible}
 .tb-handle{cursor:move;font-size:14px;color:var(--text3);line-height:1;flex-shrink:0}
 .tb-handle:hover{color:var(--text)}
-.sz-btn{font-family:inherit;font-size:10px;padding:1px 4px;border:.5px solid var(--border);border-radius:3px;background:var(--bg);color:var(--text2);cursor:pointer;flex-shrink:0}
-.sz-btn:hover,.sz-btn.on{background:var(--text);color:var(--bg);border-color:var(--text)}
+/* free font-size input */
+.sz-input{font-family:inherit;font-size:11px;width:38px;padding:1px 4px;border:.5px solid var(--border);border-radius:3px;background:var(--bg);color:var(--text);text-align:center}
+.sz-input:focus{border-color:var(--border2);outline:none}
+/* bold button */
+.b-btn{font-family:serif;font-size:12px;font-weight:bold;padding:1px 5px;border:.5px solid var(--border);border-radius:3px;background:var(--bg);color:var(--text2);cursor:pointer;flex-shrink:0;line-height:1.4}
+.b-btn:hover,.b-btn.on{background:var(--text);color:var(--bg);border-color:var(--text)}
 .tb-cp-wrap{position:relative;width:14px;height:14px;border-radius:3px;cursor:pointer;flex-shrink:0;border:1px solid var(--border)}
 .tb-cp-wrap:hover{transform:scale(1.2)}
 .tb-del{cursor:pointer;font-size:14px;color:var(--text3);line-height:1;margin-left:2px;flex-shrink:0}
@@ -115,7 +128,7 @@ header p{font-size:11px;color:var(--text3)}
 .msw{width:16px;height:16px;border-radius:50%;cursor:pointer;flex-shrink:0;transition:transform .1s;border:1.5px solid transparent}
 .msw:hover{transform:scale(1.2)}
 /* legend */
-.legend{display:flex;gap:10px;flex-wrap:wrap;padding:8px 12px;background:var(--bg2);border-radius:var(--r);border:.5px solid var(--border);font-size:12px;color:var(--text2);align-items:center}
+.legend{display:flex;gap:4px 14px;flex-wrap:wrap;padding:8px 12px;background:var(--bg2);border-radius:var(--r);border:.5px solid var(--border);font-size:12px;color:var(--text2);align-items:center}
 .ldot{width:12px;height:12px;border-radius:50%;flex-shrink:0}
 /* modal */
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:100;display:flex;align-items:center;justify-content:center}
@@ -123,6 +136,9 @@ header p{font-size:11px;color:var(--text3)}
 .modal h3{font-size:14px;font-weight:500;margin-bottom:13px;color:var(--text)}
 .modal input,.modal select{width:100%;font-family:inherit;font-size:13px;padding:7px 10px;border:.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);margin-bottom:9px}
 .mrow{display:flex;gap:8px;justify-content:flex-end;margin-top:8px}
+/* free label font-size input */
+.lfs-input{font-family:inherit;font-size:12px;width:38px;padding:2px 4px;border:.5px solid var(--border2);border-radius:5px;background:var(--bg);color:var(--text);text-align:center}
+.lfs-input:focus{outline:none;border-color:var(--text)}
 .hint{font-size:11px;color:var(--text3);padding:0 2px}
 .hidden-cp{position:absolute;opacity:0;width:0;height:0;pointer-events:none}
 </style>
@@ -263,7 +279,7 @@ window.addTextBox=()=>{
   // default into the top annotation zone, horizontally centered
   const x=Math.max(4,Math.round((MARG.side+gridW)/2)-60);
   const y=16;
-  plate.tbs.push({id,x,y,text:'实验标题 / 日期',size:14,color:'#2C2C2A'});
+  plate.tbs.push({id,x,y,text:'实验标题 / 日期',size:14,color:'#2C2C2A',bold:false});
   S.tbSel=id;S.tbEdit=null;renderTBLayer();
   setTimeout(()=>tbStartEdit(id),30);
 };
@@ -275,7 +291,26 @@ window.tbDown=(e,id)=>{
 window.tbStartEdit=id=>{S.tbSel=id;S.tbEdit=id;renderTBLayer();setTimeout(()=>{const ta=document.getElementById('tbt-'+id);if(ta){ta.focus();ta.setSelectionRange(ta.value.length,ta.value.length);}},15);};
 window.tbBlur=id=>{const ta=document.getElementById('tbt-'+id);if(ta){const plate=ap(),tb=(plate.tbs||[]).find(t=>t.id===id);if(tb)tb.text=ta.value;}S.tbEdit=null;renderTBLayer();};
 window.tbDelete=(e,id)=>{e.stopPropagation();const plate=ap();plate.tbs=(plate.tbs||[]).filter(t=>t.id!==id);if(S.tbSel===id)S.tbSel=null;if(S.tbEdit===id)S.tbEdit=null;renderTBLayer();};
-window.tbSetSize=(id,size)=>{const plate=ap(),tb=(plate.tbs||[]).find(t=>t.id===id);if(tb)tb.size=size;renderTBLayer();};
+window.tbSetSize=(id,size)=>{
+  const v=Math.max(8,Math.min(96,parseInt(size)||14));
+  const plate=ap(),tb=(plate.tbs||[]).find(t=>t.id===id);if(tb)tb.size=v;
+  renderTBLayer();
+};
+window.tbSizeInput=(id,val)=>{
+  // live-update size while typing without full re-render
+  const v=parseInt(val);if(!v||v<6)return;
+  const plate=ap(),tb=(plate.tbs||[]).find(t=>t.id===id);if(tb)tb.size=v;
+  const el=document.getElementById('tbtext-'+id);if(el)el.style.fontSize=v+'px';
+  const ta=document.getElementById('tbt-'+id);if(ta)ta.style.fontSize=v+'px';
+};
+window.tbToggleBold=id=>{
+  const plate=ap(),tb=(plate.tbs||[]).find(t=>t.id===id);
+  if(tb)tb.bold=!tb.bold;renderTBLayer();
+};
+window.setLFSVal=v=>{
+  const n=Math.max(8,Math.min(72,parseInt(v)||13));
+  S.labelFontSize=n;renderToolbar();renderGrid();
+};
 window.tbOpenCp=id=>{const inp=document.getElementById('tbc-inp-'+id);if(inp)inp.click();};
 window.tbSetColor=(id,hex)=>{
   const plate=ap(),tb=(plate.tbs||[]).find(t=>t.id===id);if(tb)tb.color=hex;
@@ -345,10 +380,11 @@ window.exportPNG=()=>{
     });
     // legend
     if(used.size){let lx=CP+MS;const ly=H-MB+18;ctx.font='11px "Courier New"';ctx.textBaseline='middle';used.forEach(col=>{ctx.beginPath();ctx.arc(lx+6,ly,6,0,Math.PI*2);ctx.fillStyle=col.hex;ctx.fill();ctx.fillStyle='#333';ctx.textAlign='left';ctx.fillText(col.lbl,lx+15,ly);lx+=ctx.measureText(col.lbl).width+30;});}
-    // text boxes: tb.x,tb.y are relative to pzone-inner (0,0), so canvas = CP + tb.x/y
+    // text boxes — coordinates relative to pzone-inner (0,0), canvas = CP + tb.x/y
     (plate.tbs||[]).forEach(tb=>{
       const lines=(tb.text||'').split('\n');
-      ctx.fillStyle=tb.color||'#222';ctx.font=tb.size+'px "Courier New"';ctx.textAlign='left';ctx.textBaseline='top';
+      const fw=tb.bold?'bold ':'';
+      ctx.fillStyle=tb.color||'#222';ctx.font=fw+tb.size+'px "Courier New"';ctx.textAlign='left';ctx.textBaseline='top';
       lines.forEach((ln,i)=>ctx.fillText(ln,CP+tb.x,CP+tb.y+i*(tb.size*1.4)));
     });
   }else{
@@ -374,7 +410,8 @@ window.exportPNG=()=>{
     if(used.size){let lx=CP+MS;const ly=H-MB+18;ctx.font='11px "Courier New"';ctx.textBaseline='middle';used.forEach(col=>{ctx.beginPath();ctx.arc(lx+6,ly,6,0,Math.PI*2);ctx.fillStyle=col.hex;ctx.fill();ctx.fillStyle='#333';ctx.textAlign='left';ctx.fillText(col.lbl,lx+15,ly);lx+=ctx.measureText(col.lbl).width+30;});}
     (plate.tbs||[]).forEach(tb=>{
       const lines=(tb.text||'').split('\n');
-      ctx.fillStyle=tb.color||'#222';ctx.font=tb.size+'px "Courier New"';ctx.textAlign='left';ctx.textBaseline='top';
+      const fw=tb.bold?'bold ':'';
+      ctx.fillStyle=tb.color||'#222';ctx.font=fw+tb.size+'px "Courier New"';ctx.textAlign='left';ctx.textBaseline='top';
       lines.forEach((ln,i)=>ctx.fillText(ln,CP+tb.x,CP+tb.y+i*(tb.size*1.4)));
     });
   }
@@ -396,7 +433,7 @@ function buildToolbar(){
   h+='<div class="vsep"></div>';
   h+='<div class="fsz-ctrl"><span style="font-size:11px;color:var(--text3)">label</span>';
   h+='<div class="fsz-btn" onclick="setLFS(-1)">−</div>';
-  h+='<span class="fsz-val">'+S.labelFontSize+'px</span>';
+  h+='<input class="lfs-input" type="number" min="8" max="72" value="'+S.labelFontSize+'" onchange="setLFSVal(this.value)" oninput="setLFSVal(this.value)" title="label font size (px)">';
   h+='<div class="fsz-btn" onclick="setLFS(1)">+</div></div>';
   h+='<div class="vsep"></div>';
   h+='<button class="btn" onclick="clearAll()">clear</button>';
@@ -496,17 +533,40 @@ function renderSelBar(){const wrap=document.getElementById('selbar-wrap');if(!wr
 function renderLegend(){const wrap=document.getElementById('legend-wrap');if(!wrap)return;wrap.innerHTML=buildLegend();}
 function renderTBLayer(){
   const layer=document.getElementById('tb-layer');if(!layer)return;
-  const plate=ap();const SIZES=[11,14,18,24];let h='';
+  const plate=ap();let h='';
   (plate.tbs||[]).forEach(tb=>{
     const isSel=S.tbSel===tb.id,isEdit=S.tbEdit===tb.id;
+    const fw=tb.bold?'bold':'normal';
     const textHtml=(tb.text||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
     h+='<div class="tb'+(isSel?' tb-sel':'')+'" id="tb-'+tb.id+'" style="left:'+tb.x+'px;top:'+tb.y+'px;" onclick="tbSelect(event,'+tb.id+')" onmousedown="event.stopPropagation()">';
-    h+='<div class="tb-bar"><span class="tb-handle" onmousedown="tbDown(event,'+tb.id+')" title="drag">⠿</span>';
-    SIZES.forEach(s=>h+='<button class="sz-btn'+(tb.size===s?' on':'')+'" onclick="tbSetSize('+tb.id+','+s+')">'+s+'</button>');
-    h+='<div class="tb-cp-wrap" id="tbdot-'+tb.id+'" style="background:'+(tb.color||'#2C2C2A')+'" onclick="tbOpenCp('+tb.id+')" title="text color"><input type="color" id="tbc-inp-'+tb.id+'" class="hidden-cp" value="'+(tb.color||'#2C2C2A')+'" oninput="tbSetColor('+tb.id+',this.value)"></div>';
-    h+='<span class="tb-del" onclick="tbDelete(event,'+tb.id+')">×</span></div>';
-    if(isEdit){h+='<textarea class="tb-textarea" id="tbt-'+tb.id+'" style="font-size:'+tb.size+'px;color:'+(tb.color||'#2C2C2A')+'" onblur="tbBlur('+tb.id+')" onkeydown="if(event.key===\'Escape\')tbBlur('+tb.id+');event.stopPropagation();" onmousedown="event.stopPropagation()">'+( tb.text||'')+'</textarea>';}
-    else{h+='<div class="tb-content" id="tbtext-'+tb.id+'" style="font-size:'+tb.size+'px;color:'+(tb.color||'#2C2C2A')+'" ondblclick="tbStartEdit('+tb.id+')">'+( textHtml||'<span style="opacity:.3;font-size:12px">双击编辑</span>')+'</div>';}
+    // toolbar floats above — does NOT affect text position
+    h+='<div class="tb-bar">';
+    h+='<span class="tb-handle" onmousedown="tbDown(event,'+tb.id+')" title="drag to move">⠿</span>';
+    // free font size input
+    h+='<input class="sz-input" type="number" min="8" max="96" value="'+tb.size+'"'
+      +' onchange="tbSetSize('+tb.id+',this.value)"'
+      +' oninput="tbSizeInput('+tb.id+',this.value)"'
+      +' onclick="event.stopPropagation()" title="font size">';
+    h+='<span style="font-size:10px;color:var(--text3)">px</span>';
+    // bold toggle
+    h+='<button class="b-btn'+(tb.bold?' on':'')+'" onclick="tbToggleBold('+tb.id+')" title="bold">B</button>';
+    // color picker
+    h+='<div class="tb-cp-wrap" id="tbdot-'+tb.id+'" style="background:'+(tb.color||'#2C2C2A')+'" onclick="tbOpenCp('+tb.id+')" title="text color">'
+      +'<input type="color" id="tbc-inp-'+tb.id+'" class="hidden-cp" value="'+(tb.color||'#2C2C2A')+'" oninput="tbSetColor('+tb.id+',this.value)"></div>';
+    h+='<span class="tb-del" onclick="tbDelete(event,'+tb.id+')">×</span>';
+    h+='</div>';
+    // text content — position unaffected by toolbar visibility
+    if(isEdit){
+      h+='<textarea class="tb-textarea" id="tbt-'+tb.id
+        +'" style="font-size:'+tb.size+'px;font-weight:'+fw+';color:'+(tb.color||'#2C2C2A')+'"'
+        +' onblur="tbBlur('+tb.id+')"'
+        +' onkeydown="if(event.key===\'Escape\')tbBlur('+tb.id+');event.stopPropagation();"'
+        +' onmousedown="event.stopPropagation()">'+( tb.text||'')+'</textarea>';
+    }else{
+      h+='<div class="tb-content" id="tbtext-'+tb.id
+        +'" style="font-size:'+tb.size+'px;font-weight:'+fw+';color:'+(tb.color||'#2C2C2A')+'"'
+        +' ondblclick="tbStartEdit('+tb.id+')">'+(textHtml||'<span style="opacity:.3;font-size:12px">双击编辑</span>')+'</div>';
+    }
     h+='</div>';
   });
   layer.innerHTML=h;
