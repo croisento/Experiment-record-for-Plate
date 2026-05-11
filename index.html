@@ -158,6 +158,7 @@ const CFG={
   w24:{lbl:'24-well',rows:'ABCD',cols:6,t:'w',sz:52},
   w48:{lbl:'48-well',rows:'ABCDEF',cols:8,t:'w',sz:40},
   w96:{lbl:'96-well',rows:'ABCDEFGH',cols:12,t:'w',sz:30},
+  w384:{lbl:'384-well',rows:'ABCDEFGHIJKLMNOP',cols:24,t:'w',sz:18},
   l11:{lbl:'Lane 11',slots:11,t:'l'},
   l15:{lbl:'Lane 15',slots:15,t:'l'},
 };
@@ -346,7 +347,7 @@ window.exportPNG=()=>{
   let canvas;
   if(cfg.t==='w'){
     const rows=cfg.rows.split(''),cols=cfg.cols;
-    const sz=Math.max(46,Math.min(62,Math.floor(560/cols)));
+    const sz=Math.max(18,Math.min(62,Math.floor(560/cols)));
     const gap=Math.max(5,Math.floor(sz*.12)),LW=32,LH=28;
     // total canvas size includes annotation margins
     const W=CP*2+MS*2+LW+cols*(sz+gap)-gap;
@@ -473,7 +474,7 @@ function buildWellGrid(plate,cfg){
     for(let c=1;c<=cols;c++){
       const w=plate.wells[K(r,c)]||{};
       const bg=w.col?w.col.hex:'var(--bg)',bc=w.col?w.col.hex:'var(--border2)',tc=w.col?TC(w.col.hex):'var(--text3)';
-      const isel=S.sel.has(K(r,c)),fs=Math.min(LFS,Math.floor(sz*0.3));
+      const isel=S.sel.has(K(r,c)),fs=Math.min(LFS,Math.floor(sz*0.38));
       h+='<div class="well'+(isel?' sel':'')+'" style="width:'+sz+'px;height:'+sz+'px;background:'+bg+';border-color:'+bc+';" onmousedown="onWD(\''+r+'\','+c+')" onmouseenter="onWE(\''+r+'\','+c+')" ondblclick="onWDbl(\''+r+'\','+c+')" oncontextmenu="onWCtx(event,\''+r+'\','+c+')">';
       if(w.lbl)h+='<span class="wlbl" style="color:'+tc+';font-size:'+fs+'px;">'+w.lbl+'</span>';
       h+='</div>';
