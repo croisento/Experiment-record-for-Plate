@@ -15,6 +15,7 @@
 | 24 孔板 | 4 × 6 |
 | 48 孔板 | 6 × 8 |
 | 96 孔板 | 8 × 12 |
+| 384 孔板 | 16 × 24 |
 | Lane 11 | 1 × 11 点胶槽 |
 | Lane 15 | 1 × 15 点胶槽 |
 
@@ -152,6 +153,7 @@ A lightweight, browser-based well plate annotation tool for lab use. No installa
 | 24-well | 4 × 6 |
 | 48-well | 6 × 8 |
 | 96-well | 8 × 12 |
+| 384-well | 16 × 24 |
 | Lane 11 | 1 × 11 dispensing strip |
 | Lane 15 | 1 × 15 dispensing strip |
 
