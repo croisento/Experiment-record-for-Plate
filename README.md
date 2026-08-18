@@ -35,8 +35,17 @@
 - 悬停色块后点 × 可删除该分组
 - 颜色修改后，已涂孔格和图例同步更新
 
+**编辑区（孔位标签批量录入）**
+- 孔板下方的 **编辑区**，选行或选列后直接打字即可写入标签，无需双击孔格
+- **行 row / 列 col** 切换录入方向：选 `B` 出现 B1–B12，选 `1` 出现 A1–H1
+- 输入即时显示在对应孔位上，当前编辑的整行 / 整列在板上高亮
+- `Enter` 或 `↓` 跳到下一个孔，`Shift+Enter` / `↑` 返回上一个
+- 从 Excel 复制一整列（或一整行）粘贴到任意输入框，自动依次填充后续孔位
+- **clear line** 一键清空当前行 / 列的全部标签
+- 每个输入框左侧的小圆点显示该孔当前颜色
+
 **孔格标注**
-- 双击任意孔格可添加文字标签，如 `100nM`、`ctrl`、`blank`
+- 双击任意孔格同样可添加文字标签，如 `100nM`、`ctrl`、`blank`
 - 工具栏 **label − / +** 控制标签字号，范围 8–28px，实时预览
 
 **批量选区**
@@ -69,6 +78,9 @@
 ## 操作说明
 
 ```
+编辑区选行 / 选列    → 直接输入孔位标签（推荐）
+编辑区 Enter / ↓     → 跳到下一个孔
+编辑区粘贴多行文本    → 从当前孔起依次自动填充
 单击 / 拖拽          → 涂色
 右键单击             → 擦除该孔
 双击孔格             → 添加或编辑标签
@@ -107,6 +119,15 @@ Experiment-record-for-Plate/
 ---
 
 ## 更新记录
+
+v4 — 编辑区（行 / 列批量录入）
+
+新增孔板下方编辑区，选行或选列后直接打字写入标签，免去逐个双击孔格
+行 / 列双向切换：选 B 出现 B1–B12，选 1 出现 A1–H1
+输入实时同步到孔位，当前编辑行 / 列在板上高亮
+Enter / ↑ ↓ 在孔位间跳转，支持从 Excel 整列粘贴自动填充
+clear line 一键清空当前行 / 列标签
+手机上编辑区自动收成单列竖排
 
 v3 — 自由调色 & 字号控制
 
@@ -173,8 +194,17 @@ A lightweight, browser-based well plate annotation tool for lab use. No installa
 - Hover over a chip and click × to delete the group
 - All painted wells update instantly when a color is changed
 
+**Edit area (row / column label entry)**
+- The **编辑区 / edit area** below the plate: pick a row or column and just type — no double-clicking wells
+- Toggle **行 row / 列 col**: picking `B` shows B1–B12, picking `1` shows A1–H1
+- Typing updates the well on the plate instantly; the active row / column is highlighted
+- `Enter` or `↓` jumps to the next well, `Shift+Enter` / `↑` goes back
+- Paste a whole column (or row) copied from Excel into any field — it fills the following wells automatically
+- **clear line** wipes every label in the current row / column
+- A small dot next to each field shows that well's current color
+
 **Well labels**
-- Double-click any well to add a text label (e.g. `100nM`, `ctrl`, `blank`)
+- Double-click any well to add a text label (e.g. `100nM`, `ctrl`, `blank`) — still supported
 - Adjustable label font size: use the **label − / +** control in the toolbar (8–28 px)
 
 **Batch selection**
@@ -207,6 +237,9 @@ A lightweight, browser-based well plate annotation tool for lab use. No installa
 ## Usage
 
 ```
+edit area row/col   → type well labels directly (recommended)
+edit area Enter / ↓ → jump to the next well
+edit area paste     → multi-line paste fills wells sequentially
 click / drag        → paint wells
 right-click         → erase a well
 double-click well   → add / edit label
@@ -245,6 +278,14 @@ Experiment-record-for-Plate/
 ---
 
 ## Changelog
+
+### v4 — Edit Area (row / column entry)
+- New edit area below the plate: select a row or column and type labels directly, no per-well double-click
+- Two-way axis switch — row `B` lists B1–B12, column `1` lists A1–H1
+- Live sync to the plate with the active row / column highlighted
+- Enter / ↑ ↓ navigation and multi-line paste from Excel
+- **clear line** clears all labels in the current row / column
+- Collapses to a single vertical column on mobile
 
 ### v3 — Color Picker & Font Size
 - Color groups are now fully custom: add, delete, and reorder freely

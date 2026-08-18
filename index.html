@@ -130,6 +130,24 @@ header p{font-size:11px;color:var(--text3)}
 /* legend */
 .legend{display:flex;gap:4px 14px;flex-wrap:wrap;padding:8px 12px;background:var(--bg2);border-radius:var(--r);border:.5px solid var(--border);font-size:12px;color:var(--text2);align-items:center}
 .ldot{width:12px;height:12px;border-radius:50%;flex-shrink:0}
+/* edit panel (编辑区) */
+.epanel{background:var(--bg);border:.5px solid var(--border2);border-radius:var(--r);padding:10px 12px;display:flex;flex-direction:column;gap:9px}
+.ehead{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.etitle{font-size:12px;font-weight:500;color:var(--text);white-space:nowrap}
+.eaxis{display:flex;gap:4px}
+.ekeys{display:flex;gap:3px;flex-wrap:wrap}
+.ekey{font-family:inherit;font-size:12px;min-width:26px;padding:3px 7px;border:.5px solid var(--border);border-radius:5px;background:var(--bg2);color:var(--text2);cursor:pointer;line-height:1.3}
+.ekey:hover{color:var(--text);border-color:var(--border2)}
+.ekey.on{background:var(--text);color:var(--bg);border-color:var(--text);font-weight:500}
+.ehint{font-size:11px;color:var(--text3);margin-left:auto}
+.egrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:7px 12px}
+.ecell{display:flex;align-items:center;gap:6px}
+.edot{width:10px;height:10px;border-radius:50%;flex-shrink:0;border:1px solid var(--border2)}
+.eid{font-size:11px;color:var(--text2);width:36px;flex-shrink:0;font-weight:500}
+.ein{flex:1;min-width:0;font-family:inherit;font-size:12px;padding:3px 5px;border:none;border-bottom:1px solid var(--border);background:transparent;color:var(--text);outline:none}
+.ein:focus{border-bottom-color:var(--text);background:var(--bg2)}
+.ein::placeholder{color:var(--text3);opacity:.45}
+.well.eline{box-shadow:0 0 0 2px var(--border2)}
 /* modal */
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:100;display:flex;align-items:center;justify-content:center}
 .modal{background:var(--bg);border-radius:var(--rl);border:.5px solid var(--border2);padding:20px 22px;min-width:260px;max-width:320px}
@@ -147,7 +165,7 @@ header p{font-size:11px;color:var(--text3)}
 <div class="card">
   <header>
     <h1>Well Plate Editor</h1>
-    <p>双击标签页重命名 · 点色点改颜色 · 双击颜色名重命名 · text模式添加文本框</p>
+    <p>编辑区直接输入孔位标签 · 双击标签页重命名 · 点色点改颜色 · text模式添加文本框</p>
   </header>
   <div class="app" id="app"></div>
 </div>
@@ -181,11 +199,13 @@ let S={
   editCid:null,
   addingColor:null,
   tbSel:null,tbEdit:null,
+  edit:{axis:'row',row:'A',col:1},
 };
 let tbDrag=null;
 const ap=()=>S.plates.find(p=>p.id===S.aid);
 const K=(r,c)=>`${r}_${c}`;
 const GC=id=>S.colors.find(c=>c.id===id);
+const esc=v=>String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 function TC(hex){
   const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
   return((0.299*r+0.587*g+0.114*b)/255)>0.54?'#1a1a18':'#ffffff';
@@ -200,10 +220,10 @@ function selRange(r1,c1,r2,c2){
   return keys;
 }
 function paintWell(r,c){const plate=ap(),col=S.ac==='e'?null:GC(S.ac);SW2(plate,r,c,{col});}
-window.onWD=(r,c)=>{if(S.mode==='text')return;S.mdown=true;if(S.mode==='paint'){paintWell(r,c);renderGrid();renderLegend();}else{S.selStart={r,c};S.sel=new Set([K(r,c)]);renderGrid();}};
-window.onWE=(r,c)=>{if(!S.mdown||S.mode==='text')return;if(S.mode==='paint'){paintWell(r,c);renderGrid();renderLegend();}else if(S.selStart){S.sel=new Set(selRange(S.selStart.r,S.selStart.c,r,c));renderGrid();}};
+window.onWD=(r,c)=>{if(S.mode==='text')return;S.mdown=true;if(S.mode==='paint'){paintWell(r,c);renderGrid();renderLegend();syncEditDots();}else{S.selStart={r,c};S.sel=new Set([K(r,c)]);renderGrid();}};
+window.onWE=(r,c)=>{if(!S.mdown||S.mode==='text')return;if(S.mode==='paint'){paintWell(r,c);renderGrid();renderLegend();syncEditDots();}else if(S.selStart){S.sel=new Set(selRange(S.selStart.r,S.selStart.c,r,c));renderGrid();}};
 window.onWDbl=(r,c)=>{S.modal='label';S.mdata={r,c,val:(ap().wells[K(r,c)]||{}).lbl||''};render();};
-window.onWCtx=(e,r,c)=>{e.preventDefault();SW2(ap(),r,c,{col:null});renderGrid();renderLegend();};
+window.onWCtx=(e,r,c)=>{e.preventDefault();SW2(ap(),r,c,{col:null});renderGrid();renderLegend();syncEditDots();};
 window.switchPlate=id=>{S.aid=id;S.sel=new Set();S.tbSel=null;S.tbEdit=null;render();};
 window.delPlate=id=>{if(S.plates.length<=1)return;S.plates=S.plates.filter(p=>p.id!==id);if(S.aid===id)S.aid=S.plates[0].id;S.sel=new Set();render();};
 window.openNew=()=>{S.modal='np';S.mdata={name:'Plate '+S.nid,type:'w96'};render();};
@@ -224,7 +244,7 @@ window.openColorPicker=id=>{const el=document.getElementById('hcp-'+id);if(el)el
 window.updateColorHex=(id,hex)=>{
   const c=GC(id);if(!c)return;c.hex=hex;
   S.plates.forEach(p=>Object.values(p.wells).forEach(w=>{if(w.col&&w.col.id===id)w.col={...w.col,hex};}));
-  renderToolbar();renderGrid();renderLegend();
+  renderToolbar();renderGrid();renderLegend();syncEditDots();
 };
 window.editCLbl=id=>{S.editCid=id;renderToolbar();setTimeout(()=>{const e=document.getElementById('ec-'+id);if(e){e.focus();e.select();}},15);};
 window.saveCLbl=(id,val)=>{
@@ -259,16 +279,117 @@ window.setLFS=delta=>{S.labelFontSize=Math.max(8,Math.min(28,S.labelFontSize+del
 window.applySelColor=cid=>{
   const col=cid==='e'?null:GC(cid);
   S.sel.forEach(k=>{const pl=ap();pl.wells[k]={...(pl.wells[k]||{col:null,lbl:''}),col};});
-  renderGrid();renderLegend();
+  renderGrid();renderLegend();syncEditDots();
 };
 window.clearSel=()=>{S.sel=new Set();renderGrid();renderSelBar();};
-window.clearAll=()=>{ap().wells={};S.sel=new Set();renderGrid();renderLegend();renderSelBar();};
+window.clearAll=()=>{ap().wells={};S.sel=new Set();renderGrid();renderLegend();renderEditPanel();renderSelBar();};
 window.selectAll=()=>{
   const plate=ap(),cfg=CFG[plate.type],keys=[];
   if(cfg.t==='w'){const rows=cfg.rows.split('');rows.forEach(r=>{for(let c=1;c<=cfg.cols;c++)keys.push(K(r,c));});}
   else{for(let i=1;i<=cfg.slots;i++)keys.push(K('A',i));}
   S.sel=new Set(keys);renderGrid();renderSelBar();
 };
+/* ---------- 编辑区 (edit area) ---------- */
+function plateDims(){
+  const cfg=CFG[ap().type];
+  return{cfg,rows:cfg.t==='w'?cfg.rows.split(''):['A'],cols:cfg.t==='w'?cfg.cols:cfg.slots};
+}
+function normEdit(){
+  const{cfg,rows,cols}=plateDims();
+  if(cfg.t!=='w')S.edit.axis='row';
+  if(!rows.includes(S.edit.row))S.edit.row=rows[0];
+  const c=parseInt(S.edit.col);S.edit.col=(c>=1&&c<=cols)?c:1;
+}
+// wells of the currently selected row / column, in display order
+function editCells(){
+  const{rows,cols}=plateDims();normEdit();
+  const out=[];
+  if(S.edit.axis==='row'){for(let c=1;c<=cols;c++)out.push({r:S.edit.row,c});}
+  else rows.forEach(r=>out.push({r,c:S.edit.col}));
+  return out;
+}
+window.setEditAxis=a=>{S.edit.axis=a;renderEditPanel();renderGrid();};
+window.setEditKey=k=>{if(S.edit.axis==='row')S.edit.row=k;else S.edit.col=parseInt(k);renderEditPanel();renderGrid();};
+// live typing: write the label and repaint only that well — keeps input focus
+window.onEditInput=(r,c,val)=>{SW2(ap(),r,c,{lbl:val});syncWellLabel(r,c);};
+window.onEditKeyDown=(e,i)=>{
+  let t=null;
+  if(e.key==='Enter'||e.key==='ArrowDown')t=e.shiftKey?i-1:i+1;
+  else if(e.key==='ArrowUp')t=i-1;
+  else return;
+  e.preventDefault();
+  const el=document.getElementById('ei-'+t);if(el){el.focus();el.select();}
+};
+// paste a multi-line / tab-separated block: fills this cell and the ones after it
+window.onEditPaste=(e,i)=>{
+  const txt=((e.clipboardData||window.clipboardData)||{getData:()=>''}).getData('text');
+  if(!txt||!/[\t\n\r]/.test(txt))return;
+  e.preventDefault();
+  const vals=txt.split(/\r\n|\r|\n|\t/).map(v=>v.trim());
+  const cells=editCells();
+  vals.forEach((v,j)=>{const cell=cells[i+j];if(cell)SW2(ap(),cell.r,cell.c,{lbl:v.slice(0,15)});});
+  renderEditPanel();renderGrid();
+  const last=Math.min(i+vals.length-1,cells.length-1);
+  setTimeout(()=>{const el=document.getElementById('ei-'+last);if(el){el.focus();el.setSelectionRange(el.value.length,el.value.length);}},10);
+};
+window.clearEditLine=()=>{
+  editCells().forEach(({r,c})=>SW2(ap(),r,c,{lbl:''}));
+  renderEditPanel();renderGrid();
+};
+function buildEditPanel(){
+  const plate=ap(),{cfg,rows,cols}=plateDims();normEdit();
+  const isRow=S.edit.axis==='row';
+  let h='<div class="epanel"><div class="ehead"><span class="etitle">编辑区</span>';
+  if(cfg.t==='w'){
+    h+='<div class="eaxis">';
+    h+='<button class="btn'+(isRow?' on':'')+'" onclick="setEditAxis(\'row\')">行 row</button>';
+    h+='<button class="btn'+(!isRow?' on':'')+'" onclick="setEditAxis(\'col\')">列 col</button>';
+    h+='</div>';
+  }
+  h+='<div class="ekeys">';
+  const keys=isRow?rows:Array.from({length:cols},(_,i)=>i+1);
+  keys.forEach(k=>{
+    const on=String(isRow?S.edit.row:S.edit.col)===String(k);
+    h+='<button class="ekey'+(on?' on':'')+'" onclick="setEditKey(\''+k+'\')">'+k+'</button>';
+  });
+  h+='</div><button class="btn" onclick="clearEditLine()">clear line</button>';
+  h+='<span class="ehint">直接输入即写入孔位 · Enter/↓ 跳下一个 · 可整列粘贴</span>';
+  h+='</div><div class="egrid">';
+  editCells().forEach(({r,c},i)=>{
+    const w=plate.wells[K(r,c)]||{};
+    h+='<div class="ecell">';
+    h+='<div class="edot" id="ed-'+K(r,c)+'" style="background:'+(w.col?w.col.hex:'transparent')+'"></div>';
+    h+='<span class="eid">'+r+c+'</span>';
+    h+='<input class="ein" id="ei-'+i+'" type="text" maxlength="15" value="'+esc(w.lbl||'')+'" placeholder="—"'
+      +' oninput="onEditInput(\''+r+'\','+c+',this.value)"'
+      +' onkeydown="onEditKeyDown(event,'+i+')"'
+      +' onpaste="onEditPaste(event,'+i+')">';
+    h+='</div>';
+  });
+  return h+'</div></div>';
+}
+function renderEditPanel(){const wrap=document.getElementById('epanel-wrap');if(!wrap)return;wrap.innerHTML=buildEditPanel();}
+// repaint a single well label without rebuilding the grid
+function syncWellLabel(r,c){
+  const plate=ap(),cfg=CFG[plate.type];
+  if(cfg.t!=='w'){renderGrid();return;}
+  const el=document.getElementById('w-'+K(r,c));
+  if(!el){renderGrid();return;}
+  const w=plate.wells[K(r,c)]||{};
+  const tc=w.col?TC(w.col.hex):'var(--text3)',fs=Math.min(S.labelFontSize,Math.floor(cfg.sz*0.38));
+  el.innerHTML=w.lbl?'<span class="wlbl" style="color:'+tc+';font-size:'+fs+'px;">'+esc(w.lbl)+'</span>':'';
+}
+// keep the edit-area color dots in sync while painting
+function syncEditDots(){
+  if(!document.getElementById('epanel-wrap'))return;
+  const plate=ap();
+  editCells().forEach(({r,c})=>{
+    const d=document.getElementById('ed-'+K(r,c));if(!d)return;
+    const w=plate.wells[K(r,c)]||{};
+    d.style.background=w.col?w.col.hex:'transparent';
+  });
+}
+
 // annotation margin sizes — must match .pzone-inner CSS padding
 const MARG={top:76,side:48,bot:48};
 
@@ -467,6 +588,7 @@ function buildToolbar(){
 }
 function buildWellGrid(plate,cfg){
   const rows=cfg.rows.split(''),cols=cfg.cols,sz=cfg.sz,gap=3,LFS=S.labelFontSize;
+  const eset=new Set(editCells().map(x=>K(x.r,x.c)));
   let h='<div class="wg" style="grid-template-columns:20px repeat('+cols+','+sz+'px);gap:'+gap+'px;align-items:center;"><div></div>';
   for(let c=1;c<=cols;c++)h+='<div class="cl2">'+c+'</div>';
   rows.forEach(r=>{
@@ -475,8 +597,9 @@ function buildWellGrid(plate,cfg){
       const w=plate.wells[K(r,c)]||{};
       const bg=w.col?w.col.hex:'var(--bg)',bc=w.col?w.col.hex:'var(--border2)',tc=w.col?TC(w.col.hex):'var(--text3)';
       const isel=S.sel.has(K(r,c)),fs=Math.min(LFS,Math.floor(sz*0.38));
-      h+='<div class="well'+(isel?' sel':'')+'" style="width:'+sz+'px;height:'+sz+'px;background:'+bg+';border-color:'+bc+';" onmousedown="onWD(\''+r+'\','+c+')" onmouseenter="onWE(\''+r+'\','+c+')" ondblclick="onWDbl(\''+r+'\','+c+')" oncontextmenu="onWCtx(event,\''+r+'\','+c+')">';
-      if(w.lbl)h+='<span class="wlbl" style="color:'+tc+';font-size:'+fs+'px;">'+w.lbl+'</span>';
+      const iedit=eset.has(K(r,c));
+      h+='<div class="well'+(isel?' sel':'')+(iedit?' eline':'')+'" id="w-'+K(r,c)+'" style="width:'+sz+'px;height:'+sz+'px;background:'+bg+';border-color:'+bc+';" onmousedown="onWD(\''+r+'\','+c+')" onmouseenter="onWE(\''+r+'\','+c+')" ondblclick="onWDbl(\''+r+'\','+c+')" oncontextmenu="onWCtx(event,\''+r+'\','+c+')">';
+      if(w.lbl)h+='<span class="wlbl" style="color:'+tc+';font-size:'+fs+'px;">'+esc(w.lbl)+'</span>';
       h+='</div>';
     }
   });
@@ -494,7 +617,7 @@ function buildLane(plate,cfg){
     h+='<rect x="'+x+'" y="'+(th+8)+'" width="'+sw+'" height="'+sh+'" fill="'+bg+'" stroke="'+st+'" stroke-width="1.5" rx="2"/>';
     if(isel)h+='<rect x="'+(x-2)+'" y="6" width="'+(sw+4)+'" height="'+(th+sh+4)+'" fill="none" stroke="var(--text)" stroke-width="2" stroke-dasharray="4,3" rx="3"/>';
     h+='<text x="'+(x+sw/2)+'" y="'+(th+sh+28)+'" text-anchor="middle" font-size="11" font-family="monospace" fill="var(--text3)">'+i+'</text>';
-    if(w.lbl)h+='<text x="'+(x+sw/2)+'" y="'+(th+sh/2+14)+'" text-anchor="middle" font-size="'+Math.min(LFS,sw*0.7)+'" font-family="monospace" fill="'+tc+'">'+w.lbl.substring(0,7)+'</text>';
+    if(w.lbl)h+='<text x="'+(x+sw/2)+'" y="'+(th+sh/2+14)+'" text-anchor="middle" font-size="'+Math.min(LFS,sw*0.7)+'" font-family="monospace" fill="'+tc+'">'+esc(w.lbl.substring(0,7))+'</text>';
     h+='</g>';
   }
   return h+'<line x1="24" y1="8" x2="'+(W-24)+'" y2="8" stroke="#aaa8a0" stroke-width="1.5"/></svg>';
@@ -575,9 +698,10 @@ function renderTBLayer(){
 }
 function render(){
   const plate=ap(),cfg=CFG[plate.type];
-  const hints={paint:'click/drag = 涂色  ·  double-click = 标注文字  ·  right-click = 擦除',select:'拖拽框选区域  ·  选中后批量填色或标注',text:'点击"+ add text"放置文本框  ·  ⠿ 拖动  ·  double-click 编辑'};
+  const hints={paint:'click/drag = 涂色  ·  right-click = 擦除  ·  标注文字请用下方编辑区（双击孔位仍可用）',select:'拖拽框选区域  ·  选中后批量填色或标注',text:'点击"+ add text"放置文本框  ·  ⠿ 拖动  ·  double-click 编辑'};
   let h=buildTabs()+buildToolbar();
   h+='<div class="pzone" id="pzone"><div class="pzone-inner"><div id="grid-content">'+(cfg.t==='w'?buildWellGrid(plate,cfg):buildLane(plate,cfg))+'</div><div class="tb-layer" id="tb-layer"></div></div></div>';
+  h+='<div id="epanel-wrap">'+buildEditPanel()+'</div>';
   h+='<div id="selbar-wrap">'+buildSelBar()+'</div>';
   h+='<div id="legend-wrap">'+buildLegend()+'</div>';
   h+='<div class="hint">'+(hints[S.mode]||'')+'</div>';
